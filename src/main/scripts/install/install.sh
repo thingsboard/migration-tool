@@ -2,7 +2,7 @@
 #
 # ThingsBoard, Inc. ("COMPANY") CONFIDENTIAL
 #
-# Copyright © 2016-2020 ThingsBoard, Inc. All Rights Reserved.
+# Copyright © 2016-2021 ThingsBoard, Inc. All Rights Reserved.
 #
 # NOTICE: All information contained herein is, and remains
 # the property of ThingsBoard, Inc. and its suppliers,
@@ -41,7 +41,7 @@ echo "Starting Solution Installation..."
 
 run_user=${pkg.user}
 
-su -s /bin/sh -c "java -cp ${jarfile} $JAVA_OPTS -Dloader.main=org.thingsboard.usecases.InstallSolutionApplication \
+su -s /bin/sh -c "java -cp ${jarfile} $JAVA_OPTS -Dloader.main=org.thingsboard.tbcli.ThingsboardCliApplication \
                     -Dinstall.data_dir=${installDir} \
                     -Dlogging.config=${CONF_FOLDER}/logback.xml \
                     org.springframework.boot.loader.PropertiesLauncher" "$run_user"
