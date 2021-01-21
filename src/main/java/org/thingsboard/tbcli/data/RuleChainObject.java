@@ -28,10 +28,16 @@
  * DOES NOT CONVEY OR IMPLY ANY RIGHTS TO REPRODUCE, DISCLOSE OR DISTRIBUTE ITS CONTENTS,
  * OR TO MANUFACTURE, USE, OR SELL ANYTHING THAT IT  MAY DESCRIBE, IN WHOLE OR IN PART.
  */
-package org.thingsboard.tbcli.service;
+package org.thingsboard.tbcli.data;
 
-public interface CliService {
+import lombok.Data;
+import org.thingsboard.server.common.data.rule.RuleChain;
+import org.thingsboard.server.common.data.rule.RuleChainMetaData;
 
-    void provisionData() throws Exception;
+@Data
+public class RuleChainObject {
+
+    private RuleChain ruleChain;
+    private RuleChainMetaData metaData;
 
 }

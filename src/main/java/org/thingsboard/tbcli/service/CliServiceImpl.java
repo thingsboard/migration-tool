@@ -50,36 +50,46 @@ import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.common.data.rule.RuleChain;
 import org.thingsboard.server.common.data.rule.RuleChainConnectionInfo;
+import org.thingsboard.server.common.data.rule.RuleChainData;
 import org.thingsboard.server.common.data.rule.RuleChainMetaData;
 import org.thingsboard.server.common.data.widget.WidgetType;
 import org.thingsboard.server.common.data.widget.WidgetsBundle;
+import org.thingsboard.tbcli.data.RuleChainObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 public abstract class CliServiceImpl implements CliService {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
+    private static final int RULE_CHAINS_EXPORT_LIMIT = 100;
+
     private static final String SRC_DIR = "src";
     private static final String MAIN_DIR = "main";
     private static final String DATA_DIR = "data";
     private static final String JSON_DIR = "json";
-    private static final String CLI_INSTALL_DIR = "cli";
+    private static final String CLI_DIR = "cli";
     private static final String RULE_CHAINS_DIR = "rule_chains";
     private static final String DASHBOARDS_DIR = "dashboards";
     private static final String WIDGETS_BUNDLES_DIR = "widgets_bundles";
 
     private final Map<String, RuleChainId> ruleChainsIds = new HashMap<>();
 
-    @Value("${install.data_dir:}")
+    @Value("${data.dir:}")
     private String dataDir;
 
     @Value("${rest.url}")
@@ -121,7 +131,7 @@ public abstract class CliServiceImpl implements CliService {
             if (!Paths.get(this.dataDir).toFile().isDirectory()) {
                 log.info("dataDir: [{}]", dataDir);
                 log.info("this.dataDir: [{}]", this.dataDir);
-                throw new RuntimeException("'install.data_dir' property value is not a valid directory!");
+                throw new RuntimeException("'data.dir' property value is not a valid directory!");
             }
             return dataDir;
         } else {
@@ -135,7 +145,7 @@ public abstract class CliServiceImpl implements CliService {
     }
 
     private String getSolutionDirName() {
-        return CLI_INSTALL_DIR;
+        return CLI_DIR;
     }
 
     private Path getRuleChainsDir() {
@@ -255,5 +265,60 @@ public abstract class CliServiceImpl implements CliService {
             restClient.saveWidgetType(widgetType);
         }
         return widgetsBundle;
+    }
+
+    protected void exportRuleChains() throws IOException {
+        RuleChainData ruleChainData = restClient.exportRuleChains(RULE_CHAINS_EXPORT_LIMIT);
+
+        Map<RuleChainId, RuleChainObject> ruleChainObjectsMap = new HashMap<>();
+        for (RuleChain ruleChain : ruleChainData.getRuleChains()) {
+            RuleChainObject ruleChainObject = new RuleChainObject();
+            ruleChainObject.setRuleChain(ruleChain);
+            ruleChainObjectsMap.put(ruleChain.getId(), ruleChainObject);
+        }
+        for (RuleChainMetaData ruleChainMetaData : ruleChainData.getMetadata()) {
+            RuleChainObject ruleChainObject = ruleChainObjectsMap.getOrDefault(ruleChainMetaData.getRuleChainId(), null);
+            if (ruleChainObject == null) {
+                log.warn("[{}] Failed to export rule chain correctly!", ruleChainMetaData.getRuleChainId());
+            } else {
+                ruleChainObject.setMetaData(ruleChainMetaData);
+            }
+        }
+        for (Map.Entry<RuleChainId, RuleChainObject> entry : ruleChainObjectsMap.entrySet()) {
+            File file = createDataFile(RULE_CHAINS_DIR, entry.getValue().getRuleChain().getName().toLowerCase().replace(" ", "_"));
+            mapper.writeValue(file, entry.getValue());
+        }
+    }
+
+    private File createDataFile(String exportDir, String fileName) throws IOException {
+        return Files.createFile(Paths.get(getDataDir(), JSON_DIR, CLI_DIR, exportDir, fileName + ".json")).toFile();
+    }
+
+    protected void importRuleChains() throws IOException {
+        Set<String> fileNames = getSetOfFileNames();
+
+        RuleChainData ruleChainData = new RuleChainData();
+        List<RuleChain> ruleChains = new ArrayList<>();
+        List<RuleChainMetaData> ruleChainsMetaData = new ArrayList<>();
+        for (String fileName : fileNames) {
+            RuleChainObject rco = readFileContentToRuleChainObj(fileName);
+            ruleChains.add(rco.getRuleChain());
+            ruleChainsMetaData.add(rco.getMetaData());
+        }
+        ruleChainData.setRuleChains(ruleChains);
+        ruleChainData.setMetadata(ruleChainsMetaData);
+
+        restClient.importRuleChains(ruleChainData, true);
+    }
+
+    private Set<String> getSetOfFileNames() throws IOException {
+        try (Stream<Path> walk = Files.walk(Paths.get(getRuleChainsDir().toUri()))) {
+            return walk.filter(Files::isRegularFile)
+                    .map(Path::toString).collect(Collectors.toSet());
+        }
+    }
+
+    private RuleChainObject readFileContentToRuleChainObj(String fileName) throws IOException {
+        return mapper.readValue(Files.readAllBytes(getRuleChainsDir().resolve(fileName)), RuleChainObject.class);
     }
 }

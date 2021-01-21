@@ -54,8 +54,8 @@ public class Export extends CliServiceImpl {
     }
 
     @Override
-    public void provisionData() {
-
+    public void provisionData() throws Exception {
+        exportRuleChains();
     }
 
 }

@@ -39,5 +39,8 @@ rest:
   username: "${REST_USERNAME:tenant@thingsboard.org}"
   password: "${REST_PASSWORD:tenant}"
 
+data:
+  dir: "${DATA_DIR:}"
+
 solution:
   type: "${SOLUTION_TYPE:import}"

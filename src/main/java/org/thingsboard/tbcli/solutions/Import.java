@@ -37,6 +37,7 @@ import org.thingsboard.tbcli.service.CliServiceImpl;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.IOException;
 
 @Slf4j
 @Service
@@ -54,8 +55,8 @@ public class Import extends CliServiceImpl {
     }
 
     @Override
-    public void provisionData() {
-
+    public void provisionData() throws Exception {
+        importRuleChains();
     }
 
 }

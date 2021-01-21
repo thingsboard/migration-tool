@@ -53,7 +53,7 @@ public class ThingsboardCliApplication {
             SpringApplication application = new SpringApplication(ThingsboardCliApplication.class);
             application.setWebApplicationType(WebApplicationType.NONE);
             ConfigurableApplicationContext context = application.run(updateArguments(args));
-            context.getBean(CliSolutionService.class).performInstall();
+            context.getBean(CliSolutionService.class).execute();
         } catch (Exception e) {
             log.error("Unexpected error during load script execution:", e);
             System.exit(1);

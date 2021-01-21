@@ -51,7 +51,7 @@ public class CliSolutionService {
     @Autowired(required = false)
     private CliService cliService;
 
-    public void performInstall() {
+    public void execute() {
         try {
             log.info("Preparing to start solution type: [{}]", solutionType);
             if (cliService == null) {
